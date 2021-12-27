@@ -64,6 +64,19 @@ test data:
 Some code of an old version of the [FrEIA framework](https://github.com/VLL-HD/FrEIA) was used for the implementation of Normalizing Flows. Follow [their tutorial](https://github.com/VLL-HD/FrEIA) if you need more documentation about it.
 
 
+## Citation
+Please cite our paper in your publications if it helps your research. Even if it does not, you are welcome to cite us.
+
+        @inproceedings { RudWeh2022,
+        author = {Marco Rudolph and Tom Wehrbein and Bodo Rosenhahn and Bastian Wandt},
+        title = {Fully Convolutional Cross-Scale-Flows for Image-based Defect Detection},
+        booktitle = {Winter Conference on Applications of Computer Vision (WACV)},
+        year = {2022},
+        url = {arxiv},
+        month = jan
+        }
+
+        
 ## License
 
 This project is licensed under the MIT License.
