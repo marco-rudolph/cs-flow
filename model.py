@@ -36,6 +36,8 @@ def get_cs_flow_model(input_dim=c.n_feat):
     nf = ReversibleGraphNet(nodes, n_jac=3)
     return nf
 
+def nf_forward(model, inputs):
+    return model(inputs), model.jacobian(run_forward=False)
 
 class FeatureExtractor(nn.Module):
     def __init__(self):

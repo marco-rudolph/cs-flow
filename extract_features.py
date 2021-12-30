@@ -20,7 +20,6 @@ def extract(train_loader, test_loader, class_name):
                 labels.append(t2np(l))
                 z = model(inputs)
                 for iz, zi in enumerate(z):
-                    zi = zi.reshape(zi.shape[0], *zi.shape[1:])
                     features[iz].append(t2np(zi))
 
             for i_f, f in enumerate(features):

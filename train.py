@@ -3,7 +3,7 @@ import torch
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
 import config as c
-from model import get_cs_flow_model, save_model
+from model import get_cs_flow_model, save_model, FeatureExtractor, nf_forward
 from utils import *
 
 
@@ -11,6 +11,12 @@ def train(train_loader, test_loader):
     model = get_cs_flow_model()
     optimizer = torch.optim.Adam(model.parameters(), lr=c.lr_init, eps=1e-04, weight_decay=1e-5)
     model.to(c.device)
+    if not c.pre_extracted:
+        fe = FeatureExtractor()
+        fe.eval()
+        fe.to(c.device)
+        for param in fe.parameters():
+            param.requires_grad = False
 
     z_obs = Score_Observer('AUROC')
 
@@ -25,9 +31,10 @@ def train(train_loader, test_loader):
                 optimizer.zero_grad()
 
                 inputs, labels = preprocess_batch(data)  # move to device and reshape
+                if not c.pre_extracted:
+                    inputs = fe(inputs)
 
-                z = model(inputs)
-                jac = model.jacobian(run_forward=False)
+                z, jac = nf_forward(model, inputs)
 
                 loss = get_loss(z, jac)
                 train_loss.append(t2np(loss))
@@ -51,9 +58,10 @@ def train(train_loader, test_loader):
         with torch.no_grad():
             for i, data in enumerate(tqdm(test_loader, disable=c.hide_tqdm_bar)):
                 inputs, labels = preprocess_batch(data)
+                if not c.pre_extracted:
+                    inputs = fe(inputs)
 
-                z = model(inputs)
-                jac = model.jacobian(run_forward=False)
+                z, jac = nf_forward(model, inputs)
                 loss = get_loss(z, jac)
 
                 z_concat = t2np(concat_maps(z))
