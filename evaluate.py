@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from sklearn.metrics import roc_auc_score, roc_curve, auc
 from tqdm import tqdm
-from model import load_model
+from model import load_model, FeatureExtractor
 import config as c
 from utils import *
 import matplotlib.pyplot as plt
@@ -75,7 +75,7 @@ def viz_roc(values, classes, class_names):
 
 
 def viz_maps(maps, name, label):
-    img_path = test_set.paths[c.viz_sample_count]
+    img_path = img_paths[c.viz_sample_count]
     image = PIL.Image.open(img_path).convert('RGB')
     image = np.array(image)
 
@@ -120,9 +120,8 @@ def viz_map_array(maps, labels, n_col=8, subsample=4, max_figures=-1):
             if fig_count == max_figures:
                 return
 
-        img_path = test_set.paths[i]
-        anomaly_description = img_path.split('/')[-2]
-        image = PIL.Image.open(img_path).convert('RGB')
+        anomaly_description = img_paths[i].split('/')[-2]
+        image = PIL.Image.open(img_paths[i]).convert('RGB')
         image = np.array(image)
         map = t2np(F.interpolate(maps[i][None, None], size=image.shape[:2], mode=upscale_mode, align_corners=False))[
             0, 0]
@@ -146,6 +145,13 @@ def viz_map_array(maps, labels, n_col=8, subsample=4, max_figures=-1):
 def evaluate(model, test_loader):
     model.to('cuda')
     model.eval()
+    if not c.pre_extracted:
+        fe = FeatureExtractor()
+        fe.eval()
+        fe.to(c.device)
+        for param in fe.parameters():
+            param.requires_grad = False
+
     print('\nCompute maps, loss and scores on test set:')
     anomaly_score = list()
     test_labels = list()
@@ -154,6 +160,8 @@ def evaluate(model, test_loader):
     with torch.no_grad():
         for i, data in enumerate(tqdm(test_loader, disable=c.hide_tqdm_bar)):
             inputs, labels = preprocess_batch(data)
+            if not c.pre_extracted:
+                inputs = fe(inputs)
             z = model(inputs)
 
             z_concat = t2np(concat_maps(z))
@@ -176,7 +184,9 @@ def evaluate(model, test_loader):
     test_labels = np.concatenate(test_labels)
 
     compare_histogram(anomaly_score, test_labels)
-    viz_roc(anomaly_score, test_labels, test_set.class_names)
+
+    class_names = [img_path.split('/')[-2] for img_path in img_paths]
+    viz_roc(anomaly_score, test_labels, class_names)
 
     test_labels = np.array([1 if l > 0 else 0 for l in test_labels])
     auc_score = roc_auc_score(test_labels, anomaly_score)
@@ -187,8 +197,8 @@ def evaluate(model, test_loader):
 
     return
 
-
 train_set, test_set = load_datasets(c.dataset_path, c.class_name)
+img_paths = test_set.paths if c.pre_extracted else [p for p, l in test_set.samples]
 _, test_loader = make_dataloaders(train_set, test_set)
 mod = load_model(c.modelname)
 evaluate(mod, test_loader)
