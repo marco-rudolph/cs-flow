@@ -31,7 +31,7 @@ map_size = (img_size[0] // 12, img_size[1] // 12)
 
 # dataloader parameters
 batch_size = 16  # actual batch size is this value multiplied by n_transforms(_test)
-kernel_sizes = [3] * (n_coupling_blocks - 1) + [1]
+kernel_sizes = [3] * (n_coupling_blocks - 1) + [5]
 
 # total epochs = meta_epochs * sub_epochs
 # evaluation after <sub_epochs> epochs
