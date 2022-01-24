@@ -1,6 +1,7 @@
 # CS-Flow
 
-This is the code to the WACV 2022 paper "Fully Convolutional Cross-Scale-Flows for Image-based Defect Detection" by Marco Rudolph, Tom Wehrbein, Bodo Rosenhahn and Bastian Wandt.
+This is the code to the WACV 2022 paper "[Fully Convolutional Cross-Scale-Flows for Image-based Defect Detection](
+https://arxiv.org/pdf/2110.02855.pdf)" by Marco Rudolph, Tom Wehrbein, Bodo Rosenhahn and Bastian Wandt.
 
 ## Getting Started
 
