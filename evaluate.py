@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from sklearn.metrics import roc_auc_score, roc_curve, auc
+from sklearn.metrics import roc_auc_score, roc_curve, auc, average_precision_score, precision_recall_curve
 from tqdm import tqdm
 from model import load_model, FeatureExtractor
 import config as c
@@ -182,15 +182,39 @@ def evaluate(model, test_loader):
 
     anomaly_score = np.concatenate(anomaly_score)
     test_labels = np.concatenate(test_labels)
-
     compare_histogram(anomaly_score, test_labels)
 
     class_names = [img_path.split('/')[-2] for img_path in img_paths]
     viz_roc(anomaly_score, test_labels, class_names)
-
     test_labels = np.array([1 if l > 0 else 0 for l in test_labels])
+
+    # General metric
     auc_score = roc_auc_score(test_labels, anomaly_score)
-    print('AUC:', auc_score)
+    AP = average_precision_score(test_labels, anomaly_score)
+
+    # Optimal threshold
+    precision, recall, thresholds = precision_recall_curve(test_labels, anomaly_score)
+    f1 = 2 * (precision * recall) / (precision + recall)
+    idx = f1.argmax()
+    opt_precision, opt_recall, opt_f1, opt_thresh = precision[idx], recall[idx], f1[idx], thresholds[idx]
+
+    # Precision at full recall
+    _recall = recall.copy()
+    _recall.sort()
+    idx = len(_recall) - _recall.argmax() - 1
+    full_recall = recall[idx]
+    precision_fullRec = precision[idx]
+
+    print('AUROC:', auc_score)
+    print('AP:', AP)
+    print()
+    print('Optimal F1:', opt_f1)
+    print('Precision:', opt_precision)
+    print('Recall:', opt_recall)
+    print('Threshold:', opt_thresh)
+    print()
+    print('Full recall:', full_recall)
+    print('Highest precision at full recall:', precision_fullRec)
 
     if localize:
         viz_map_array(all_maps, test_labels)

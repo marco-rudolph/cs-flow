@@ -164,11 +164,16 @@ class Score_Observer:
 
     def update(self, score, epoch, print_score=False):
         self.last = score
+        is_best = False
         if epoch == 0 or score > self.max_score:
             self.max_score = score
             self.max_epoch = epoch
+            is_best = True
         if print_score:
             self.print_score()
+
+        return is_best
+
 
     def print_score(self):
         print('{:s}: \t last: {:.4f} \t max: {:.4f} \t epoch_max: {:d} \t epoch_loss: {:d}'.format(self.name, self.last,
