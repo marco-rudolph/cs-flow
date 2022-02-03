@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from sklearn.metrics import roc_auc_score, roc_curve, auc
+from sklearn.metrics import roc_auc_score, roc_curve, auc, average_precision_score, precision_recall_curve
 from tqdm import tqdm
 from model import load_model, FeatureExtractor
 import config as c
@@ -11,6 +11,7 @@ import PIL
 from os.path import join
 import os
 from copy import deepcopy
+from math import isclose
 
 
 localize = True
@@ -182,20 +183,70 @@ def evaluate(model, test_loader):
 
     anomaly_score = np.concatenate(anomaly_score)
     test_labels = np.concatenate(test_labels)
-
     compare_histogram(anomaly_score, test_labels)
 
     class_names = [img_path.split('/')[-2] for img_path in img_paths]
     viz_roc(anomaly_score, test_labels, class_names)
-
     test_labels = np.array([1 if l > 0 else 0 for l in test_labels])
+
+    # General metric
     auc_score = roc_auc_score(test_labels, anomaly_score)
-    print('AUC:', auc_score)
+    AP = average_precision_score(test_labels, anomaly_score)
+
+    # Optimal threshold
+    precision, recall, thresholds = precision_recall_curve(test_labels, anomaly_score)
+    f1 = 2 * (precision * recall) / (precision + recall + 1e-6)
+    idx = f1.argmax()
+    opt_precision, opt_recall, opt_f1, opt_thresh = precision[idx], recall[idx], f1[idx], thresholds[idx]
+
+    # Precision at full recall
+    _recall = recall.copy()
+    _recall.sort()
+    max_recall_idx = _recall.argmax()
+    full_recall = recall[max_recall_idx]
+    precision_fullRec = precision[max_recall_idx]
+
+    print('AUROC:', auc_score)
+    print('AP:', AP)
+    print()
+    print('Optimal F1:', opt_f1)
+    print('Precision:', opt_precision)
+    print('Recall:', opt_recall)
+    print('Threshold:', opt_thresh)
+    print()
+    print('Full recall:', full_recall)
+    print('Highest precision at full recall:', precision_fullRec)
 
     if localize:
-        viz_map_array(all_maps, test_labels)
+        viz_map_array(all_maps, test_labels, n_col=4, subsample=1)
+
+    # Plot AUC
+    fpr, tpr, thresholds = roc_curve(test_labels, anomaly_score)
+    plt.figure('auroc_curve')
+    plt.plot(fpr, tpr)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.legend([f'AUC = {auc_score:.4f}'])
+    for idx in range(len(thresholds)):
+        if idx > 0:
+            if isclose(tpr[idx], tpr[idx - 1], abs_tol=1e-2):
+                continue
+        plt.plot([fpr[idx]], [tpr[idx]], 'o', color='green')
+        plt.text(fpr[idx] + 0.01, tpr[idx] - 0.04,
+                 'fpr: ' + str(round(fpr[idx], 2)) + '_tpr: ' + str(round(tpr[idx], 2)) + '_th: ' + str(round(thresholds[idx], 2)), fontsize='x-small')
+
+    # Precision at full recall
+    full_recall_idx = tpr.argmax()
+    plt.plot([fpr[full_recall_idx]], [tpr[full_recall_idx]], 'o', color='green')
+    plt.text(fpr[full_recall_idx] + 0.01, tpr[full_recall_idx] - 0.04,
+             'fpr: ' + str(round(fpr[full_recall_idx], 2)) + '_tpr: ' + str(round(tpr[full_recall_idx], 2)) + '_th: ' + str(
+                 round(thresholds[full_recall_idx], 2)), fontsize='x-small')
+
+    plt.title(c.modelname)
+    plt.savefig(join(score_export_dir, 'auroc_curve.png'))
 
     return
+
 
 train_set, test_set = load_datasets(c.dataset_path, c.class_name)
 img_paths = test_set.paths if c.pre_extracted else [p for p, l in test_set.samples]

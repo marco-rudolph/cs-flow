@@ -78,11 +78,11 @@ def train(train_loader, test_loader):
         is_anomaly = np.array([0 if l == 0 else 1 for l in test_labels])
 
         anomaly_score = np.concatenate(test_z, axis=0)
-        z_obs.update(roc_auc_score(is_anomaly, anomaly_score), epoch,
+        is_best = z_obs.update(roc_auc_score(is_anomaly, anomaly_score), epoch,
                      print_score=c.verbose or epoch == c.meta_epochs - 1)
 
-    if c.save_model:
-        model.to('cpu')
-        save_model(model, c.modelname)
+        if c.save_model and is_best:
+            print("Best AUROC achieved. Saving new checkpoint.")
+            save_model(model, c.modelname)
 
     return z_obs.max_score, z_obs.last, z_obs.min_loss_score
