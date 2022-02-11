@@ -143,7 +143,7 @@ def viz_map_array(maps, labels, n_col=8, subsample=4, max_figures=-1):
 
 
 def evaluate(model, test_loader):
-    model.to('cuda')
+    model.to(c.device)
     model.eval()
     if not c.pre_extracted:
         fe = FeatureExtractor()
