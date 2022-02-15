@@ -36,7 +36,7 @@ kernel_sizes = [3] * (n_coupling_blocks - 1) + [5]
 # total epochs = meta_epochs * sub_epochs
 # evaluation after <sub_epochs> epochs
 meta_epochs = 4  # total epochs = meta_epochs * sub_epochs
-sub_epochs = 15  # evaluate after this number of epochs
+sub_epochs = 60  # evaluate after this number of epochs
 
 # output settings
 verbose = True
