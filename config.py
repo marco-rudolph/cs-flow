@@ -11,6 +11,8 @@ modelname = "dummy_test"  # export evaluations/logs with this name
 pre_extracted = True  # were feature preextracted with extract_features?
 
 img_size = (768, 768)  # image size of highest scale, others are //2, //4
+assert img_size[0] % 128 == 0 and img_size[1] % 128 == 0, "image width/height should be a multiple of 128"
+
 img_dims = [3] + list(img_size)
 
 # transformation settings
@@ -27,7 +29,7 @@ use_gamma = True
 
 extractor = "effnetB5"  # feature dataset name (which was used in 'extract_features.py' as 'export_name')
 n_feat = {"effnetB5": 304}[extractor]  # dependend from feature extractor
-map_size = (img_size[0] // 12, img_size[1] // 12)
+map_size = (img_size[0] // 32, img_size[1] // 32)
 
 # dataloader parameters
 batch_size = 16  # actual batch size is this value multiplied by n_transforms(_test)
