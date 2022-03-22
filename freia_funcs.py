@@ -61,7 +61,9 @@ class CrossConvolutions(nn.Module):
                                        kernel_size=kernel_size, padding=pad,
                                        bias=not batch_norm, padding_mode=pad_mode)
 
-        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
+        self.upsample = nn.Upsample(scale_factor=2)
+        self.upsample10 = nn.Upsample(size=[c.img_size[0]//32,c.img_size[1]//32])
+        self.upsample21 = nn.Upsample(size=[c.img_size[0]//64,c.img_size[1]//64])
 
         self.up_conv10 = nn.Conv2d(channels_hidden, channels,
                                    kernel_size=kernel_size, padding=pad, bias=True, padding_mode=pad_mode)
@@ -76,6 +78,12 @@ class CrossConvolutions(nn.Module):
         self.down_conv12 = nn.Conv2d(channels_hidden, channels,
                                      kernel_size=kernel_size, padding=pad,
                                      bias=not batch_norm, stride=2, padding_mode=pad_mode, dilation=1)
+
+        # flag_odd is True if size of the image can't be perfectly divided during the scaling down.
+        # This can create problems that must be handled with interpolation
+        self.flag_odd = False
+        if ((c.img_size[0]%128 != 0) or (c.img_size[1]//128 != 0)):
+            self.flag_odd = True
 
         self.lr = nn.LeakyReLU(self.leaky_slope)
 
@@ -92,11 +100,19 @@ class CrossConvolutions(nn.Module):
         out1 = self.conv_scale1_1(y1)
         out2 = self.conv_scale2_1(y2)
 
-        y1_up = self.up_conv10(self.upsample(y1))
-        y2_up = self.up_conv21(self.upsample(y2))
+        if(self.flag_odd):
+            y1_up = self.up_conv10(self.upsample10(y1))
+            y2_up = self.up_conv21(self.upsample21(y2))
+        else:
+            y1_up = self.up_conv10(self.upsample(y1))
+            y2_up = self.up_conv21(self.upsample(y2))
 
         y0_down = self.down_conv01(y0)
         y1_down = self.down_conv12(y1)
+        if(self.flag_odd):
+            y0_down = nn.functional.interpolate(y0_down, size=[c.img_size[0]//64, c.img_size[1]//64])
+            y1_down = nn.functional.interpolate(y1_down, size=[c.img_size[0]//128, c.img_size[1]//128])
+
 
         out0 = out0 + y1_up
         out1 = out1 + y0_down + y2_up
@@ -107,7 +123,6 @@ class CrossConvolutions(nn.Module):
             out1 = out1 * self.gamma1
             out2 = out2 * self.gamma2
         return out0, out1, out2
-
 
 class ParallelPermute(nn.Module):
     '''permutes input vector in a random but fixed way'''
