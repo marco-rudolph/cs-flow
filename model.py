@@ -44,7 +44,7 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
         self.feature_extractor = EfficientNet.from_pretrained('efficientnet-b5')
 
-    def eff_ext(self, x, use_layer=36):
+    def eff_ext(self, x, use_layer=35):
         x = self.feature_extractor._swish(self.feature_extractor._bn0(self.feature_extractor._conv_stem(x)))
         # Blocks
         for idx, block in enumerate(self.feature_extractor._blocks):
