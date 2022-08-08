@@ -23,6 +23,7 @@ os.makedirs(map_export_dir, exist_ok=True)
 
 def compare_histogram(scores, classes, thresh=2.5, n_bins=64):
     classes = deepcopy(classes)
+    scores = deepcopy(scores)
     classes[classes > 0] = 1
     scores[scores > thresh] = thresh
     bins = np.linspace(np.min(scores), np.max(scores), n_bins)
